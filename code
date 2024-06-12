@@ -1,0 +1,744 @@
+#include<stdio.h>
+#include<malloc.h>
+#include<string.h>
+#include<math.h>
+#include<windows.h>//库函数
+
+typedef struct LNode//定义结点结构体
+{
+ char number[30];//商品序列号（13位）
+ char name[30];//名字（最多15字）
+ double inprice;//进价
+ double outprice;//售价
+ int quantity;//数量
+ struct LNode *next;//指针域
+}LNode,*LinkList;
+
+int GetElem_L_from_str(char str[],LinkList L);//取得所需节点位置
+void CreateLink_L(LinkList &L);//创建单链表
+void LoadLink_L(LinkList L);//遍历并输出单链表全部内容
+void LoadLink_LNode(LinkList L,int i);//输出特定结点内容
+int File_to_LinkList(LinkList &L);//文件输入至链表
+int LinkList_to_File(LinkList L);//链表输出至文件
+void LinkInsert_L(LinkList &L,int i);//特定结点前插入
+void LinkDelete_L_all(LinkList &L);//链表的清空
+void LinkInsert_L_behind(LinkList &L);//后续插入
+void LinkDelete_L(LinkList &L,int i);//删除特定节点
+void  LinkEdit_L_outprice(LinkList &L,int e);//修改售价
+void  LinkEdit_L_inprice(LinkList &L,int e);//修改进价
+void  LinkEdit_L_number(LinkList &L,int e);//修改编号
+void  LinkEdit_L_quantity(LinkList &L,int e);//修改数量
+void  LinkEdit_L_name(LinkList &L,int e);//修改名字
+void sum_price(LinkList L);//计算预计总利润
+void price_with_name(int i,LinkList L);//根据售出量计算单个商品利润
+int menu(LinkList &L);//菜单
+
+int GetElem_L_from_str(char *str,LinkList L)//取得所需节点位置
+{
+    int i=0;
+    LNode *p=L->next;
+    while(p)
+    {
+       if((!strcmp(str,p->name)||!strcmp(str,p->number)))
+        {
+            return i;//遍历与比较，成功则返回位置
+        }
+        i++;
+        p=p->next;
+    }
+    printf("未搜索到此项商品,即将返回主页面\n");
+    system("pause");//未成功返回-1，便于之后判断
+    return -1;
+}
+
+void CreateLink_L(LinkList &L)//创建单链表
+{
+  LinkList q;
+  int i,n;
+  L=(LNode*)malloc(sizeof(LNode));
+  L->next=NULL;
+  q=L;              // 先建立一个带头结点的单链表
+  printf("请输入你要输入的元素个数\n");
+  scanf("%d",&n);
+  printf("%-20s%-20s%-20s%-20s%-20s\n","序列号","名字","进价","售价","数量");
+  for(i=0;i<n;i++) {
+    LNode *p=(LNode*)malloc(sizeof(LNode));  // 生成新结点
+    scanf("%s %s %lf %lf %d",p->number,p->name,&p->inprice,&p->outprice,&p->quantity);
+    p->next=NULL;
+    q->next=p;
+    q=p;
+  }
+}
+
+void LoadLink_L(LinkList L){//遍历并输出单链表全部内容
+    LNode *p = L->next;
+    system("cls");
+	 printf("%-20s%-20s%-20s%-20s%-20s\n","序列号","名字","进价","售价","数量");
+	 while(p)
+	 {
+		printf("%-20s%-20s%-20.2lf%-20.2lf%d\n",p->number,p->name,p->inprice,p->outprice,p->quantity);
+		p=p->next;
+	 }//循环输出
+    system("pause");
+}
+
+void LoadLink_LNode(LinkList L,int i){//输出特定结点内容
+// 输出特定结点
+    LNode *p = L->next;
+    int e=0;
+	 while(p)
+	 {
+		if(e==i)
+        {
+            printf("%-20s%-20s%-20s%-20s%-20s\n","序列号","名字","进价","售价","数量");
+            printf("%-20s%-20s%-20.2lf%-20.2lf%d\n",p->number,p->name,p->inprice,p->outprice,p->quantity);
+            system("pause");
+            break;
+        }//循环至目标位置
+        e++;
+        p=p->next;
+	 }
+}
+
+int File_to_LinkList(LinkList &L)//文件输入至链表
+{
+    LNode *q,*p;
+    L=new LNode;
+    q=new LNode;
+    L->next=NULL;
+    q=L;
+    FILE *fp;//定义与空间申请
+    if((fp=fopen("course.txt","r"))==NULL)
+    {
+        return 0;
+    }else//判断文件打开是否正常
+    {
+        while(!feof(fp))
+        {
+            p=(LNode*)malloc(sizeof(LNode));
+            fscanf(fp,"%s %s %lf %lf %d\n",p->number,p->name,&p->inprice,&p->outprice,&p->quantity);
+            p->next=NULL;
+            q->next=p;
+            q=p;
+        }//遍历文件输入至链表
+    }
+    fclose(fp);//关闭文件，节省空间
+    return 0;
+}
+
+
+int LinkList_to_File(LinkList L)//链表输出至文件
+{
+    LNode *p=L->next;
+    FILE *fp=fopen("course.txt","w");//定义
+    if(fp==NULL)
+    {
+        printf("此文件不能打开\n");
+        return 0;
+    }else//判断文件打开是否正常
+    {
+        while(p)
+        {
+            fprintf(fp,"%-20s%-20s%-20.2lf%-20.2lf%d\n",p->number,p->name,p->inprice,p->outprice,p->quantity);
+            p=p->next;//规范化格式输入，便于美观
+        }
+        fclose(fp);//关闭文件
+        return 1;
+    }
+}
+
+void LinkInsert_L(LinkList &L,int i){//特定结点前插入
+   int j;
+   LNode *p,*s;
+   p=L;
+   j=0;//定义
+   while(p&&(j<i-1))
+   {
+       p=p->next;
+       j++;
+   }//遍历至目标位置
+   s=(LNode *)malloc(sizeof(LNode));
+   printf("请输入数据\n%-20s%-20s%-20s%-20s%-20s\n","序列号","名字","进价","售价","数量");
+   scanf("%s %s %lf %lf %d",s->number,s->name,&s->inprice,&s->outprice,&s->quantity);
+   s->next=p->next;
+   p->next=s;
+   printf("商品信息成功写入\n");//插入数据
+   system("pause");
+}
+
+void LinkDelete_L_all(LinkList &L)//链表的清空
+{
+    LNode *p,*i;
+    p=L->next;//定义
+    while(p!=NULL)
+    {
+        i=p->next;
+        free(p);
+        p=i;
+    }
+    L->next=NULL;//遍历与清空节点
+}
+
+void LinkInsert_L_behind(LinkList &L)//后续插入
+{
+    int i,n;
+    LNode *q,*p=L->next;//定义
+    while(p->next)
+    {
+        p=p->next;
+    }
+    q=p;//遍历至末尾
+    system("cls") ;
+    printf("请输入你要输入的数据个数\n");
+    scanf("%d",&n);
+    printf("请输入数据\n%-20s%-20s%-20s%-20s%-20s\n","序列号","名字","进价","售价","数量");
+    for(i=0;i<n;i++) {
+        LNode *g=(LNode*)malloc(sizeof(LNode));  // 生成新结点
+        scanf("%s %s %lf %lf %d",g->number,g->name,&g->inprice,&g->outprice,&g->quantity);
+        g->next=NULL;
+        q->next=g;
+        q=g;//插入数据
+   }
+   printf("后续写入成功\n");
+   system("pause");
+}
+
+void LinkDelete_L(LinkList &L,int i){//删除特定节点
+   int j;LNode *p,*q;
+   p=L;j=0;//定义
+   while((p->next)&&(j<i-1))
+   {
+       p=p->next;
+       j++;
+   }//遍历至目标位置
+    q=p->next;
+    p->next=q->next;
+    free(q);//清空目标结点
+    printf("此商品信息已被删除完毕\n");
+    system("pause");
+}
+
+void  LinkEdit_L_outprice(LinkList &L,int e)//修改售价
+{
+    double newprice;
+    LNode *p;
+    p=L->next;
+    printf("请输入新售价\n");
+    scanf("%lf",&newprice);
+    while(newprice<0)//售价小于0则重新输入
+    {
+        printf("输入非法，请重新输入\n");
+        scanf("%lf",&newprice);
+    }
+    for(int i=0;;i++)
+    {
+        if(i==e)
+        {
+            p->outprice=newprice;
+            printf("修改完毕\n");
+            break;
+        }//遍历至目标位置并修改
+        p=p->next;
+    }
+    system("pause");
+}
+
+void  LinkEdit_L_inprice(LinkList &L,int e)//修改进价
+{
+    double newprice;
+    LNode *p;
+    p=L->next;
+    printf("请输入新进价\n");
+    scanf("%lf",&newprice);
+    while(newprice<0)//进价小于0则重新输入
+    {
+        printf("输入非法，请重新输入\n");
+        scanf("%lf",&newprice);
+    }
+    for(int i=0;;i++)
+    {
+        if(i==e)
+        {
+            p->inprice=newprice;
+            printf("修改完毕\n");
+            break;//遍历至目标位置并修改
+        }
+        p=p->next;
+    }
+    system("pause");
+}
+
+void  LinkEdit_L_number(LinkList &L,int e)//修改序号
+{
+    char number[30];
+    LNode *p;
+    p=L->next;
+    printf("请输入新编号\n");
+    scanf("%s",number);
+    for(int i=0;;i++)
+    {
+        if(i==e)
+        {
+            strcpy(p->number,number);//遍历与复制
+            printf("修改完毕\n");
+            break;
+        }
+        p=p->next;
+    }
+    system("pause");
+}
+
+void  LinkEdit_L_quantity(LinkList &L,int e)//修改数量
+{
+    int quantity,i;
+    LNode *p;
+    p=L->next;
+    printf("请输入新数量\n");
+    scanf("%d",&quantity);
+    while(quantity<0)//数量小于0则重新输入
+    {
+        printf("输入非法，请重新输入\n");
+        scanf("%d",&quantity);
+    }
+    for(i=0;;i++)
+    {
+        if(i==e)
+        {
+            p->quantity=quantity;
+            printf("修改完毕\n");//遍历至目标位置并修改
+            break;
+        }
+        p=p->next;
+    }
+    system("pause");
+}
+
+void  LinkEdit_L_name(LinkList &L,int e)//修改名字
+{
+     char name[30];
+    LNode *p;
+    p=L->next;
+    printf("请输入新名字\n");
+    scanf("%s",name);
+    for(int i=0;;i++)
+    {
+        if(i==e)
+        {
+            strcpy(p->name,name);//遍历与复制
+            printf("修改完毕\n");
+            break;
+        }
+        p=p->next;
+    }
+    system("pause");
+}
+
+void sum_price(LinkList L)//计算预计总利润
+{
+    LNode *p;
+    p=L->next;
+    double sum=0;
+    while(p)
+    {
+        sum+=(p->outprice-p->inprice)*p->quantity;//各商品进出价差与数量之积的和
+        p=p->next;
+    }
+    printf("预计你可以赚取的总利润为%.2lf\n",sum);
+    system("pause");
+}
+
+void price_with_name(int i,LinkList L)//根据售出量计算单个商品利润
+{
+    int e=0,quantity;
+    LNode *p;
+    double sum=0;
+    p=L->next;
+    printf("请输入售出量\n");
+    scanf("%d",&quantity);
+    while(p)
+    {
+        if(i==e)
+        {
+            while(quantity>p->quantity)
+            {
+                printf("库存量不足,请重新输入\n");
+                scanf("%d",&quantity);//数量大于库存量则重新输入
+            }
+            sum=quantity*(p->outprice-p->inprice);
+            printf("利润为%.2lf\n",sum);//数量与进出价差之积
+            system("pause");
+            break;
+        }
+        p=p->next;
+        e++;
+    }
+}
+
+int menu(LinkList &L)//菜单
+{
+    int a=0,b=0,c=0,d=0,e=0,f=0,g=0,h=0,i;
+    char str[30];
+    if(!L->next)
+    {
+        system("cls");
+        printf("检测到文件数据为空，请你手动创建输入数据\n");
+        CreateLink_L(L);
+        printf("商品数据手动创建输入完毕\n");
+        system("pause");
+    }//文件无输入或无文件则手动创建链表
+    system("cls");
+    printf("欢迎使用商品进销存管理程序\n");
+    printf("请选择:\n");
+    printf("*============================*\n");
+    printf("*1.插入        *2.删除       *\n");
+    printf("*3.修改        *4.统计       *\n");
+    printf("*5.查看        *6.设置       *\n");
+    printf("*7.退出        *             *\n");
+    printf("*============================*\n");
+    scanf("%d",&a);
+    switch(a)
+            {
+                case 1:
+                    {
+
+                                    system("cls") ;
+                                    printf("请选择:\n");
+                                    printf("*=============================*\n");
+                                    printf("*1.后续写入                   *\n");
+                                    printf("*2.表内写入(输入的信息前写入) *\n");
+                                    printf("*3.返回初始页面               *\n");
+                                    printf("*=============================*\n\n");
+                                    scanf("%d",&b);
+                                    switch(b)
+                                        {
+                                            case 1:
+                                                {
+                                                    LinkInsert_L_behind(L);
+                                                    return 1;
+                                                }
+                                            case 2:
+                                                {
+                                                     system("cls");
+                                                     printf("请输入名字或序列号以查找位置\n");
+                                                    scanf("%s",str);
+                                                    i=GetElem_L_from_str(str,L);
+                                                    if(!(i+1))
+                                                    {
+                                                            return 1;
+                                                    }
+                                                    LinkInsert_L(L,i+1);
+                                                    return 1;
+                                                }
+                                                default:
+                                                {
+                                                    if(b!=3)
+                                                    {
+                                                        printf("你输入了非法字符，即将退出\n");
+                                                        system("pause");
+                                                        return 0;
+                                                    }
+                                                    return 1;
+                                                }
+                                        }
+
+                        }
+                case 2:
+                    {
+                        system("cls");
+                        printf("请选择:\n");
+                        printf("*=============================*\n");
+                        printf("*1.一键删除                   *\n");
+                        printf("*2.商品信息删除               *\n");
+                        printf("*3.返回初始页面               *\n");
+                        printf("*=============================*\n\n");
+                        scanf("%d",&c);
+                        switch(c)
+                        {
+                            case 1:
+                                {
+                                        LinkDelete_L_all(L);
+                                        printf("商品全数据已被删除\n");
+                                        system("pause");
+                                        return 1;
+                                }
+                            case 2:
+                                {
+                                    system("cls");
+                                    printf("请输入名字或序列号以查找位置\n");
+                                    scanf("%s",str);
+                                    i=GetElem_L_from_str(str,L);
+                                    if(!(i+1))
+                                    {
+                                        return 1;
+                                    }
+                                    LinkDelete_L(L,i+1);
+                                    return 1;
+                                }
+
+                            default:
+                                {
+                                    if(c!=3)
+                                    {
+                                        printf("你输入了非法字符,即将退出\n");
+                                        system("pause");
+                                        return 0;
+                                    }
+                                    return 1;
+                                }
+                        }
+                    }
+                case 3:
+                    {
+                                                    system("cls");
+                                                    printf("请输入名字或序列号以查找位置\n");
+                                                    scanf("%s",str);
+                                                    i=GetElem_L_from_str(str,L);
+                                                    if(!(i+1))
+                                                    {
+                                                            return 1;
+                                                    }
+                                                    printf("请选择修改项:\n");
+                                                    printf("*=============================*\n");
+                                                    printf("*1.序号                       *\n");
+                                                    printf("*2.名字                       *\n");
+                                                    printf("*3.进价                       *\n");
+                                                    printf("*4.售价                       *\n");
+                                                    printf("*5.数量                       *\n");
+                                                    printf("*=============================*\n\n");
+                                                    scanf("%d",&d);
+                                                    switch(d)
+                                                    {
+                                                        case 1:
+                                                        {
+
+                                                            LinkEdit_L_number(L,i);//编号修改
+                                                            return 1;
+                                                        }
+                                                        case 2:
+                                                        {
+
+                                                            LinkEdit_L_name(L,i);//名字修改
+                                                            return 1;
+                                                        }
+                                                        case 3:
+                                                        {
+
+                                                            LinkEdit_L_inprice(L,i);//进价修改
+                                                            return 1;
+                                                        }
+                                                        case 4:
+                                                        {
+
+                                                            LinkEdit_L_outprice(L,i);//售价修改
+                                                            return 1;
+                                                        }
+                                                        case 5:
+                                                        {
+
+                                                            LinkEdit_L_quantity(L,i);//数量修改
+                                                            return 1;
+                                                        }
+                                                        default:
+                                                        {
+                                                                printf("你输入了非法字符,即将退出\n");
+                                                                system("pause");
+                                                                return 0;
+                                                        }
+                                                    }
+                    }
+                case 4:
+                    {
+                        system("cls");
+                        printf("请选择:\n");
+                        printf("*==============================*\n");
+                        printf("*1.取得总利润                  *\n");
+                        printf("*2.输入商品信息及售出量计算利润*\n");
+                        printf("*3.返回初始页面                *\n");
+                        printf("*==============================*\n\n");
+                        scanf("%d",&e);
+                        switch(e)
+                        {
+                            case 1:
+                                {
+                                      system("cls");
+                                      sum_price(L);
+                                      return 1;
+                                }
+                            case 2:
+                            {
+                                      system("cls");
+                                      printf("请选择输入名字或商品序列号以查找位置\n");
+                                      scanf("%s",str);
+                                      i=GetElem_L_from_str(str,L);
+                                      if(!(i+1))
+                                      {
+                                          return 1;
+                                      }
+                                      price_with_name(i,L);
+                                      return 1;
+                            }
+                            default:
+                            {
+                                if(e!=3)
+                                {
+                                    system("cls");
+                                    printf("你输入了非法字符,即将退出\n");
+                                    system("pause");
+                                    return 0;
+                                }
+                                return 1;
+                            }
+
+                        }
+                    }
+                case 5:
+                    {
+                         system("cls");
+                         printf("请选择:\n");
+                         printf("*=============================*\n");
+                         printf("*1.输入名字或序号展开商品信息 *\n");
+                         printf("*2.商品信息全展开             *\n");
+                         printf("*3.返回上一界面               *\n");
+                         printf("*=============================*\n\n");
+                         scanf("%d",&f);
+                         switch(f)
+                         {
+                             case 1:
+                             {
+                                                    system("cls");
+                                                    printf("请输入名字或序列号以查找位置\n");
+                                                    scanf("%s",str);
+                                                    i=GetElem_L_from_str(str,L);
+                                                    if(!(i+1))
+                                                    {
+                                                        return 1;
+                                                    }
+                                                    LoadLink_LNode(L,i);
+                                                    return 1;
+                             }
+                             case 2:
+                             {
+                                 LoadLink_L(L);
+                                 return 1;
+                             }
+                             default:
+                            {
+                                if(f!=3)
+                                {
+                                    printf("你输入了非法字符,即将退出\n");
+                                    system("pause");
+                                    return 0;
+                                }
+                                return 1;
+                            }
+
+                         }
+                    }
+                case 6:
+                    {
+                         system("cls");
+                         printf("请选择:\n");
+                         printf("*=============================*\n");
+                         printf("*1.修改界面字体颜色           *\n");
+                         printf("*2.返回初始界面               *\n");
+                         printf("*=============================*\n\n");
+                         scanf("%d",&g);
+                         switch(g)
+                         {
+                             case 1:
+
+                             {
+                                 system("cls");
+                                 printf("请选择:\n");
+                                 printf("*=============================*\n");
+                                 printf("*1.绿色                       *\n");
+                                 printf("*2.浅蓝色                     *\n");
+                                 printf("*3.红色                       *\n");
+                                 printf("*4.紫色                       *\n");
+                                 printf("*5.黄色                       *\n");
+                                 printf("*5.白色(默认)                 *\n");
+                                 printf("*=============================*\n\n");
+                                 scanf("%d",&h);//字体颜色修改
+                                 switch(h)
+                                 {
+                                    case 1:
+                                      {
+                                          system("color 0A");
+                                          break;
+                                      }
+                                    case 2:
+                                        {
+                                        system("color 0B");
+                                        break;
+                                        }
+                                    case 3:
+                                    {
+                                        system("color 0C");
+                                        break;
+                                    }
+                                    case 4:
+                                    {
+                                        system("color 0D");
+                                        break;
+                                    }
+                                    case 5:
+                                    {
+                                        system("color 0E");
+                                        break;
+                                    }
+                                    case 6:
+                                    {
+                                        system("color 0F");
+                                        break;
+                                    }
+                                    default:
+                                        {
+                                            system("cls");
+                                            printf("你输入了非法字符,即将退出\n");
+                                            system("pause");
+                                            return 0;
+                                        }
+                                 }
+                                 printf("颜色改变成功\n");
+                                 system("pause");
+                                 return 1;
+
+                             }
+                             default:
+                            {
+                                if(g!=2)
+                                {
+                                    system("cls");
+                                    printf("你输入了非法字符,即将退出\n");
+                                    system("pause");
+                                    return 0;
+                                }
+                                return 1;
+                            }
+                         }
+                    }
+                default:
+                    {
+                       if(a!=7)
+                       {
+                            printf("识别到非法字符,即将退出\n");
+                            system("pause");
+                       }
+                        return 0;
+                    }
+            }
+
+}
+
+int main()//主函数
+{
+    LinkList T;//定义链表
+    File_to_LinkList(T);//文件输入链表
+    while(menu(T))
+    {
+    }//菜单循环
+    system("cls") ;
+    printf("感谢你的使用");
+    LinkList_to_File(T);//链表输出文件并退出
+    return 0;
+}
